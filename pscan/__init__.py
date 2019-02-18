@@ -160,13 +160,13 @@ class Scan:
                 self.comb_params[key] = [self.comb_params[key]]
                 #_check_comb_param(key, val)
 
-    def run_scan(self, f):
+    def run_scan(self, f, start=0, stop=None):
         """Run f the requested number of times for each set of parameters
         requested."""
-        for params in self.params():
+        for params in self.params(start, stop):
             f(**params)
 
-    def params(self):
+    def params(self,start=0,stop=None):
         """A generator that iterates through all parameters requested the
         correct number of times each. Returns them as a dict with form
         {'param_name': param_value, ... } for use as f(**params)."""
@@ -180,7 +180,11 @@ class Scan:
         joint_sizes = [len(next(iter(jlist.values()))) for jlist in self.joint_params]
         all_sizes = comb_sizes + joint_sizes
         total_combinations = reduce(operator.mul, all_sizes, 1)
-        for i in range(total_combinations):
+
+        if stop is None:
+            stop = total_combinations
+        
+        for i in range(start,stop):
             sub = np.unravel_index(i, all_sizes)
             params = {}
             # get the comb_params
@@ -201,7 +205,19 @@ class Scan:
                     num_repeats = c
             for i in range(num_repeats):
                 yield params
-
+    
+    def count_total_combinations(self):
+        comb_sizes = []
+        comb_keys = []
+        for key,val in self.comb_params.items():
+            comb_keys.append(key)
+            comb_sizes.append(len(val))
+        # length of first values array, since lengths should match for sets of
+        # jointly varying parameters
+        joint_sizes = [len(next(iter(jlist.values()))) for jlist in self.joint_params]
+        all_sizes = comb_sizes + joint_sizes
+        total_combinations = reduce(operator.mul, all_sizes, 1)
+        return total_combinations
     def add_count(self, func):
         """Add (a) new function(s) to determine how many times to repeat a parameter
         set. Each function should take a dictionary of values (your parameters)
